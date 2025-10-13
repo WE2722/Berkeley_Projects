@@ -22,6 +22,20 @@ jobs:
       - name: Debug: print python env and repo layout
         run: |
           python -c "import sys,os; print('PYTHON:', sys.version); print('EXEC:', sys.executable); print('CWD:', os.getcwd()); print('LISTROOT:', sorted(os.listdir('.'))); import pprint; pprint.pprint(sys.path)" | tee debug.txt
+      - name: Import-check with full traceback
+        run: |
+          python - <<'PY' 2>&1 | tee import-debug.txt
+import traceback
+try:
+    # Try importing the agent modules as CI would
+    import pacmanAgents
+    print('Imported pacmanAgents OK')
+    import pacman
+    print('Imported pacman OK')
+except Exception:
+    traceback.print_exc()
+    raise
+PY
       - name: Run tests (repo-only)
         run: |
           # Run only tests under the repository's tests folders to avoid collecting
