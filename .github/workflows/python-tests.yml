@@ -44,6 +44,7 @@ PY
           # unrelated tests from system/site-packages.
           pytest -q search/tests --junitxml=pytest-results.xml | tee pytest.log
       - name: Upload debug artifacts
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: ci-debug-artifacts
@@ -52,10 +53,12 @@ PY
             pytest.log
             pytest-results.xml
       - name: Print short previews of logs
+        if: ${{ always() }}
         run: |
           echo "----- debug.txt (first 200 lines) -----"; head -n 200 debug.txt || true
           echo "----- pytest.log (first 200 lines) -----"; head -n 200 pytest.log || true
       - name: Print compact debug summary
+        if: ${{ always() }}
         run: |
           python - <<'PY'
 import sys,os
