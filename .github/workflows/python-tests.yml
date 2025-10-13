@@ -39,3 +39,9 @@ jobs:
         run: |
           echo "----- debug.txt (first 200 lines) -----"; head -n 200 debug.txt || true
           echo "----- pytest.log (first 200 lines) -----"; head -n 200 pytest.log || true
+      - name: Print compact debug summary
+        run: |
+          python - <<'PY'
+import sys,os
+print('SUMMARY_LINE: exec=' + sys.executable + ' sys.path[0:5]=' + str(sys.path[:5]))
+PY
