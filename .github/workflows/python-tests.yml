@@ -35,3 +35,7 @@ jobs:
             debug.txt
             pytest.log
             pytest-results.xml
+      - name: Print short previews of logs
+        run: |
+          echo "----- debug.txt (first 200 lines) -----"; head -n 200 debug.txt || true
+          echo "----- pytest.log (first 200 lines) -----"; head -n 200 pytest.log || true
