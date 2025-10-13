@@ -21,9 +21,17 @@ jobs:
           pip install pytest
       - name: Debug: print python env and repo layout
         run: |
-          python -c "import sys,os; print('PYTHON:', sys.version); print('EXEC:', sys.executable); print('CWD:', os.getcwd()); print('LISTROOT:', sorted(os.listdir('.'))); import pprint; pprint.pprint(sys.path)"
+          python -c "import sys,os; print('PYTHON:', sys.version); print('EXEC:', sys.executable); print('CWD:', os.getcwd()); print('LISTROOT:', sorted(os.listdir('.'))); import pprint; pprint.pprint(sys.path)" | tee debug.txt
       - name: Run tests (repo-only)
         run: |
           # Run only tests under the repository's tests folders to avoid collecting
           # unrelated tests from system/site-packages.
-          pytest -q search/tests
+          pytest -q search/tests --junitxml=pytest-results.xml | tee pytest.log
+      - name: Upload debug artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-debug-artifacts
+          path: |
+            debug.txt
+            pytest.log
+            pytest-results.xml
