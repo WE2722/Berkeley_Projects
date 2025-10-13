@@ -17,6 +17,8 @@ from game import Agent
 import random
 import game
 import util
+import search
+import searchAgents
 
 class LeftTurnAgent(game.Agent):
     "An agent that turns left at every opportunity"
@@ -113,3 +115,37 @@ class SmartAgent(Agent):
                     score -= 20.0 / float(dist)
 
         return score
+
+
+class PlanningSmartAgent(Agent):
+    """
+    A planning agent that computes a shortest path to the nearest food using
+    the search machinery (AnyFoodSearchProblem + BFS) and then follows that
+    path until it's exhausted, at which point it replans.
+
+    Usage: python pacman.py -p PlanningSmartAgent
+    """
+    def __init__(self):
+        self.currentPath = []
+
+    def getAction(self, state):
+        legal = state.getLegalPacmanActions()
+        if Directions.STOP in legal:
+            legal.remove(Directions.STOP)
+
+        # If we have a planned path, follow it while it's still valid
+        if self.currentPath:
+            action = self.currentPath.pop(0)
+            # If action is no longer legal, clear plan and replan
+            if action not in state.getLegalPacmanActions():
+                self.currentPath = []
+            else:
+                return action
+
+        # Need to plan: use AnyFoodSearchProblem from searchAgents
+        problem = searchAgents.AnyFoodSearchProblem(state)
+        path = search.bfs(problem)
+        if path is None or len(path) == 0:
+            return Directions.STOP
+        self.currentPath = list(path)
+        return self.currentPath.pop(0)
