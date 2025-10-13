@@ -50,3 +50,66 @@ class GreedyAgent(Agent):
 
 def scoreEvaluation(state):
     return state.getScore()
+
+
+class SmartAgent(Agent):
+    """
+    A simple smarter agent that evaluates successor states by combining:
+      - distance to the closest food (smaller is better)
+      - number of remaining food pellets (fewer is better)
+      - distance to nearest ghost (farther is better; strong penalty when too close)
+
+    This is intentionally lightweight so it can be used as a drop-in agent when
+    running `pacman.py -p SmartAgent`.
+    """
+    def __init__(self):
+        pass
+
+    def getAction(self, state):
+        legal = state.getLegalPacmanActions()
+        if Directions.STOP in legal:
+            legal.remove(Directions.STOP)
+
+        # Score each successor using the evaluation function
+        successors = [(state.generateSuccessor(0, action), action) for action in legal]
+        scored = [(self.smartEvaluation(succ), action) for succ, action in successors]
+        bestScore = max(scored, key=lambda x: x[0])[0]
+        bestActions = [pair[1] for pair in scored if pair[0] == bestScore]
+        return random.choice(bestActions)
+
+    def smartEvaluation(self, state):
+        """Return a numeric score for a state. Higher is better."""
+        # Base score from game
+        score = state.getScore()
+
+        # Food info
+        food = state.getFood()
+        foodList = food.asList()
+        if len(foodList) == 0:
+            return float('inf')  # winning state
+
+        # Distance to closest food (manhattan)
+        pacPos = state.getPacmanPosition()
+        dists = [util.manhattanDistance(pacPos, f) for f in foodList]
+        minFoodDist = min(dists) if dists else 0
+        # prefer closer food
+        score -= 2.0 * minFoodDist
+        # prefer fewer remaining pellets
+        score -= 10.0 * len(foodList)
+
+        # Ghosts: penalize being near non-scared ghosts
+        ghostStates = state.getGhostStates()
+        for g in ghostStates:
+            gpos = g.getPosition()
+            dist = util.manhattanDistance(pacPos, gpos)
+            if g.scaredTimer > 0:
+                # encourage chasing scared ghosts mildly
+                score += max(0, 5.0 - dist)
+            else:
+                # strong penalty for being too close
+                if dist == 0:
+                    score -= 500
+                else:
+                    score -= 20.0 / float(dist)
+
+        return score
