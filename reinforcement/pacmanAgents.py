@@ -110,9 +110,10 @@ class SmartAgent(Agent):
 
 
 class PlanningSmartAgent(Agent):
-    """Plans a shortest path to the nearest food using BFS and follows it."""
-    def __init__(self):
+    """Plans a shortest path to the nearest food using BFS or A* and follows it."""
+    def __init__(self, **agentArgs):
         self.currentPath = []
+        self.planner = agentArgs.get('planner', 'bfs')
 
     def getAction(self, state):
         legal = state.getLegalPacmanActions()
@@ -127,7 +128,11 @@ class PlanningSmartAgent(Agent):
                 return action
 
         problem = searchAgents.AnyFoodSearchProblem(state)
-        path = search.bfs(problem)
+        if self.planner == 'astar':
+            heuristic = lambda pos, prob=None: util.manhattanDistance(pos, prob.startState) if prob else 0
+            path = search.aStarSearch(problem, heuristic)
+        else:
+            path = search.bfs(problem)
         if path is None or len(path) == 0:
             return Directions.STOP
         self.currentPath = list(path)

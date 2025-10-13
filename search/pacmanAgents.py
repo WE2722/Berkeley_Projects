@@ -55,17 +55,20 @@ def scoreEvaluation(state):
 
 
 class SmartAgent(Agent):
-    """
-    A simple smarter agent that evaluates successor states by combining:
-      - distance to the closest food (smaller is better)
-      - number of remaining food pellets (fewer is better)
-      - distance to nearest ghost (farther is better; strong penalty when too close)
+    """A reactive evaluation-based agent with tunable weights.
 
-    This is intentionally lightweight so it can be used as a drop-in agent when
-    running `pacman.py -p SmartAgent`.
+    Agent options (passed via -a, e.g. -a foodWeight=2,ghostPenalty=20):
+      - foodWeight: multiplier for distance-to-food term (default 2.0)
+      - remainWeight: multiplier for remaining-food-count term (default 10.0)
+      - ghostPenalty: base penalty for ghost proximity (default 20.0)
+      - scaredBonus: reward when near scared ghosts (default 5.0)
     """
-    def __init__(self):
-        pass
+
+    def __init__(self, **agentArgs):
+        self.foodWeight = float(agentArgs.get('foodWeight', 2.0))
+        self.remainWeight = float(agentArgs.get('remainWeight', 10.0))
+        self.ghostPenalty = float(agentArgs.get('ghostPenalty', 20.0))
+        self.scaredBonus = float(agentArgs.get('scaredBonus', 5.0))
 
     def getAction(self, state):
         legal = state.getLegalPacmanActions()
@@ -94,10 +97,10 @@ class SmartAgent(Agent):
         pacPos = state.getPacmanPosition()
         dists = [util.manhattanDistance(pacPos, f) for f in foodList]
         minFoodDist = min(dists) if dists else 0
-        # prefer closer food
-        score -= 2.0 * minFoodDist
-        # prefer fewer remaining pellets
-        score -= 10.0 * len(foodList)
+        # prefer closer food (scaled)
+        score -= self.foodWeight * minFoodDist
+        # prefer fewer remaining pellets (scaled)
+        score -= self.remainWeight * len(foodList)
 
         # Ghosts: penalize being near non-scared ghosts
         ghostStates = state.getGhostStates()
@@ -106,13 +109,13 @@ class SmartAgent(Agent):
             dist = util.manhattanDistance(pacPos, gpos)
             if g.scaredTimer > 0:
                 # encourage chasing scared ghosts mildly
-                score += max(0, 5.0 - dist)
+                score += max(0, self.scaredBonus - dist)
             else:
                 # strong penalty for being too close
                 if dist == 0:
                     score -= 500
                 else:
-                    score -= 20.0 / float(dist)
+                    score -= (self.ghostPenalty) / float(dist)
 
         return score
 
@@ -127,6 +130,12 @@ class PlanningSmartAgent(Agent):
     """
     def __init__(self):
         self.currentPath = []
+        self.planner = 'bfs'
+
+    def __init__(self, **agentArgs):
+        """agentArgs may contain 'planner'= 'bfs' or 'astar'"""
+        self.currentPath = []
+        self.planner = agentArgs.get('planner', 'bfs')
 
     def getAction(self, state):
         legal = state.getLegalPacmanActions()
@@ -144,7 +153,12 @@ class PlanningSmartAgent(Agent):
 
         # Need to plan: use AnyFoodSearchProblem from searchAgents
         problem = searchAgents.AnyFoodSearchProblem(state)
-        path = search.bfs(problem)
+        if self.planner == 'astar':
+            # Use a simple Manhattan heuristic wrapper
+            heuristic = lambda pos, prob=None: util.manhattanDistance(pos, prob.startState) if prob else 0
+            path = search.aStarSearch(problem, heuristic)
+        else:
+            path = search.bfs(problem)
         if path is None or len(path) == 0:
             return Directions.STOP
         self.currentPath = list(path)
